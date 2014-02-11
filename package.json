@@ -1,0 +1,16 @@
+{
+  "name": "hubot-dogecoin",
+  "version": "0.0.1",
+  "description": "A hubot extension for tipping dogecoin.",
+  "main": "index.coffee",
+  "keywords": [
+    "hubot",
+    "doge",
+    "dogecoin",
+    "tipping"
+  ],
+  "author": "Jico Baligod <jico@baligod.com>",
+  "dependencies": {
+    "coffee-script": "~1.7.1"
+  }
+}
