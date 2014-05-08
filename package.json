@@ -11,6 +11,8 @@
   ],
   "author": "Jico Baligod <jico@baligod.com>",
   "dependencies": {
-    "coffee-script": "~1.7.1"
+    "coffee-script": "~1.7.1",
+    "node-dogecoin": "~0.3.5",
+    "async": "~0.2.10"
   }
 }
