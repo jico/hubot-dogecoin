@@ -15,14 +15,15 @@
 #   hubot send <n|all> doge to <addr> - withdraw n or all doge to dogecoin address addr
 #
 
-{ EventEmitter } = require('events')
-http             = require('http')
+throw new Error('HUBOT_DOGECOIND_USER missing') unless process.env.HUBOT_DOGECOIND_USER?
+throw new Error('HUBOT_DOGECOIND_USER missing') unless process.env.HUBOT_DOGECOIND_PASS?
+
 dogecoin = require('node-dogecoin')({
-  user: 'dogecoinrpc'
-  pass: '8LD5C7xpSiYvnnNLpxaoCG7nPp8UmBG8UziA9BhbE5ky'
+  user: process.env.HUBOT_DOGECOIND_USER
+  pass: process.env.HUBOT_DOGECOIND_PASS
 })
 
-class Dogebot extends EventEmitter
+class Dogebot
 
   constructor: (@robot) ->
     @robot.slug = @robot.name.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\W+/g, '-')
