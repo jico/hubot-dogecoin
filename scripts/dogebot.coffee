@@ -38,7 +38,10 @@ module.exports = (robot) ->
     dogecoin.exec 'getaccountaddress', "hubot-test-#{user.id}", (err, address) ->
       msg.reply "your Dogecoin address is #{address}"
 
-  # robot.respond /(such|much|so|very|doge(coin)?) balance/, (msg) ->
+  robot.hear /(such|much|so|very|doge(coin)?) balance|doge balance/, (msg) ->
+    user = robot.brain.users()[msg.envelope.user.id]
+    dogecoin.exec 'getbalance', "hubot-test-#{user.id}", (err, balance) ->
+      msg.reply "your Dogecoin balance is #{balance.result}"
 
   # robot.hear /@(\S+).*(?:tip |\+)(\d+).*doge/, (msg) ->
 
