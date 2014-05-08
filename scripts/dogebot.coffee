@@ -25,22 +25,25 @@ dogecoin = require('node-dogecoin')({
 class Dogebot extends EventEmitter
 
   constructor: (@robot) ->
-    @robot.brain.on 'loaded', =>
-      if @robot.brain.data.doge
-        console.log 'redis brain loaded'
+    @robot.slug = @robot.name.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\W+/g, '-')
 
+  slugForUser: (user) ->
+    "#{@robot.slug}-#{user.id}"
+
+  userFromMsg: (msg) ->
+    return @robot.brain.users()[msg.envelope.user.id]
 
 module.exports = (robot) ->
   dogebot = new Dogebot(robot)
 
   robot.hear /((such|much|so|very|doge(coin)?) address|doge register)/i, (msg) ->
-    user = robot.brain.users()[msg.envelope.user.id]
-    dogecoin.exec 'getaccountaddress', "hubot-test-#{user.id}", (err, address) ->
+    user = dogebot.userFromMsg(msg)
+    dogecoin.exec 'getaccountaddress', dogebot.slugForUser(user), (err, address) ->
       msg.reply "your Dogecoin address is #{address}"
 
   robot.hear /(such|much|so|very|doge(coin)?) balance|doge balance/, (msg) ->
-    user = robot.brain.users()[msg.envelope.user.id]
-    dogecoin.exec 'getbalance', "hubot-test-#{user.id}", (err, balance) ->
+    user = dogebot.userFromMsg(msg)
+    dogecoin.exec 'getbalance', dogebot.slugForUser(user), (err, balance) ->
       msg.reply "your Dogecoin balance is #{balance.result}"
 
   # robot.hear /@(\S+).*(?:tip |\+)(\d+).*doge/, (msg) ->
