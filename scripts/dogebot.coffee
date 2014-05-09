@@ -28,8 +28,16 @@ class Dogebot
   constructor: (@robot) ->
     @robot.slug = @robot.name.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\W+/g, '-')
 
+  findUserByMention: (mentionName) ->
+    user = null
+    users = @robot.brain.users()
+    for id, userData of users
+      if userData.mention_name == mentionName
+        user = users[id]
+    return user
+
   slugForUser: (user) ->
-    "#{@robot.slug}-#{user.id}"
+    return "#{@robot.slug}-#{user.id}"
 
   userFromMsg: (msg) ->
     return @robot.brain.users()[msg.envelope.user.id]
@@ -45,8 +53,34 @@ module.exports = (robot) ->
   robot.hear /(such|much|so|very|doge(coin)?) balance|doge balance/, (msg) ->
     user = dogebot.userFromMsg(msg)
     dogecoin.exec 'getbalance', dogebot.slugForUser(user), (err, balance) ->
-      msg.reply "your Dogecoin balance is #{balance.result}"
+      msg.reply "your Dogecoin balance is #{balance}"
 
-  # robot.hear /@(\S+).*(?:tip |\+)(\d+).*doge/, (msg) ->
+  robot.hear /@(\S+).*(?:tip |\+)(\d+).*doge/, (msg) ->
+    recipientMentionName = msg.match[1]
+    amount = parseInt(msg.match[2])
+    sender = dogebot.userFromMsg(msg)
+    recipient = dogebot.findUserByMention(recipientMentionName)
+
+    if recipient?
+      senderSlug = dogebot.slugForUser(sender)
+      recipientSlug = dogebot.slugForUser(recipient)
+
+      dogecoin.exec 'getbalance', senderSlug, (err, balance) ->
+        balance = parseInt(balance) || 0
+        if balance >= amount
+          dogecoin.exec 'move', senderSlug, recipientSlug, amount, (err, success) ->
+            if err?
+              msg.reply "Woops, something went wrong :("
+              console.log err
+            if success
+              msg.send "@#{recipient.mention_name} +#{amount} doge from @#{sender.mention_name}"
+        else
+          msg.reply "you only have #{balance} doge!"
+    else
+      msg.send "Couldn't find #{recipientMentionName}"
+
+    # user = dogebot.userFromMsg(msg)
+    # dogecoin.exec 'getbalance', dogebot.slugForUser(user), (err, balance) ->
+      # msg.reply "your Dogecoin balance is #{balance.result}"
 
   # robot.respond /send (\d+|all) ?doge (?:to )?(D\S+)/, (msg) ->
