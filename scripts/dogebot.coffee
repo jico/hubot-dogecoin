@@ -1,5 +1,5 @@
 # Description:
-#   Tip with dogecoin
+#   wow! tip with dogecoin
 #
 # Dependencies:
 #   node-dogecoin
