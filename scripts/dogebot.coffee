@@ -7,9 +7,11 @@
 # Configuration:
 #   HUBOT_DOGECOIND_USER
 #   HUBOT_DOGECOIND_PASS
+#   HUBOT_DOGECOIND_HOST (optional)
+#   HUBOT_DOGECOIND_PORT (optional)
 #
 # Commands:
-#   <user> +<n> doge    - tip user n dogecoin
+#   <user> +<n> doge - tip user n dogecoin
 #   doge register - get your dogecoin address
 #   doge address  - get your dogecoin address
 #   doge balance  - get your dogecoin balance
@@ -22,6 +24,8 @@ throw new Error('HUBOT_DOGECOIND_PASS missing') unless process.env.HUBOT_DOGECOI
 dogecoindConfig =
   user: process.env.HUBOT_DOGECOIND_USER
   pass: process.env.HUBOT_DOGECOIND_PASS
+  host: process.env.HUBOT_DOGECOIND_HOST || 'localhost'
+  port: process.env.HUBOT_DOGECOIND_PORT || 22555
 
 dogecoin = require('node-dogecoin')(dogecoindConfig)
 
@@ -69,7 +73,6 @@ module.exports = (robot) ->
       recipientSlug = dogebot.slugForUser(recipient)
 
       dogecoin.exec 'getbalance', senderSlug, (err, balance) ->
-        console.log balance
         balance = parseInt(balance) || 0
         if balance >= amount
           dogecoin.exec 'move', senderSlug, recipientSlug, amount, (err, success) ->
