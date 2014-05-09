@@ -2,17 +2,18 @@
 #   Tip with dogecoin
 #
 # Dependencies:
-#   None
+#   node-dogecoin
 #
 # Configuration:
-#   None
+#   HUBOT_DOGECOIND_USER - username for dogecoind RPC
+#   HUBOT_DOGECOIND_PASS - password for dogecoind RPC
 #
 # Commands:
-#   <user> +<n> doge - send user n dogecoin
-#   hubot register doge - get your dogecoin address
-#   hubot such address - alias to register doge
-#   hubot much balance - get your dogecoin balance
-#   hubot send <n|all> doge to <addr> - withdraw n or all doge to dogecoin address addr
+#   <user> +<n> doge    - tip user n dogecoin
+#   doge register - get your dogecoin address
+#   doge address  - get your dogecoin address
+#   doge balance  - get your dogecoin balance
+#   send <n|all> doge to <addr> - withdraw n or all doge to dogecoin address addr
 #
 
 throw new Error('HUBOT_DOGECOIND_USER missing') unless process.env.HUBOT_DOGECOIND_USER?
