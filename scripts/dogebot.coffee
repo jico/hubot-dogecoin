@@ -5,8 +5,8 @@
 #   node-dogecoin
 #
 # Configuration:
-#   HUBOT_DOGECOIND_USER - username for dogecoind RPC
-#   HUBOT_DOGECOIND_PASS - password for dogecoind RPC
+#   HUBOT_DOGECOIND_USER
+#   HUBOT_DOGECOIND_PASS
 #
 # Commands:
 #   <user> +<n> doge    - tip user n dogecoin
@@ -17,7 +17,7 @@
 #
 
 throw new Error('HUBOT_DOGECOIND_USER missing') unless process.env.HUBOT_DOGECOIND_USER?
-throw new Error('HUBOT_DOGECOIND_USER missing') unless process.env.HUBOT_DOGECOIND_PASS?
+throw new Error('HUBOT_DOGECOIND_PASS missing') unless process.env.HUBOT_DOGECOIND_PASS?
 
 dogecoindConfig =
   user: process.env.HUBOT_DOGECOIND_USER
