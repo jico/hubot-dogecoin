@@ -53,6 +53,7 @@ module.exports = (robot) ->
   robot.hear /(such|much|so|very|doge(coin)?) balance|doge balance/, (msg) ->
     user = dogebot.userFromMsg(msg)
     dogecoin.exec 'getbalance', dogebot.slugForUser(user), (err, balance) ->
+      balance = parseInt(balance) || 0
       msg.reply "your Dogecoin balance is #{balance}"
 
   robot.hear /@(\S+).*(?:tip |\+)(\d+).*doge/, (msg) ->
@@ -66,6 +67,7 @@ module.exports = (robot) ->
       recipientSlug = dogebot.slugForUser(recipient)
 
       dogecoin.exec 'getbalance', senderSlug, (err, balance) ->
+        console.log balance
         balance = parseInt(balance) || 0
         if balance >= amount
           dogecoin.exec 'move', senderSlug, recipientSlug, amount, (err, success) ->
@@ -79,8 +81,36 @@ module.exports = (robot) ->
     else
       msg.send "Couldn't find #{recipientMentionName}"
 
-    # user = dogebot.userFromMsg(msg)
-    # dogecoin.exec 'getbalance', dogebot.slugForUser(user), (err, balance) ->
-      # msg.reply "your Dogecoin balance is #{balance.result}"
+  robot.hear /send (\d+|all) ?doge (?:to )?(D\S+)/, (msg) ->
+    user           = dogebot.userFromMsg(msg)
+    withdrawAmount = msg.match[1].toLowerCase()
+    toAddress      = msg.match[2]
 
-  # robot.respond /send (\d+|all) ?doge (?:to )?(D\S+)/, (msg) ->
+    # Validate deposit address
+    if toAddress[0] != 'D' || toAddress.length != 34
+      return msg.reply "that doesn't seem to be a valid Dogecoin address"
+
+    dogecoin.exec 'getbalance', dogebot.slugForUser(user), (err, balance) ->
+      balance = parseInt(balance) || 0
+      return msg.reply "you have no doge in your account" if balance <= 0
+
+      if withdrawAmount is 'all'
+        withdrawAmount = balance
+
+      withdrawAmount = parseInt(withdrawAmount)
+
+      if withdrawAmount > balance
+        return msg.reply "you only have #{balance} doge!"
+      else
+        dogecoin.exec 'sendfrom', dogebot.slugForUser(user), toAddress, withdrawAmount, (err, txid) ->
+          if err?
+            msg.reply "woops, something went wrong :("
+            console.log err
+          if txid?
+            message = """
+              \n#{parseInt(withdrawAmount)} doge sent to #{toAddress}
+              Balance: #{balance - withdrawAmount} doge
+              Transaction: http://dogechain.info/tx/#{txid}
+            """
+            msg.reply message
+
