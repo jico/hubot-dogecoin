@@ -19,10 +19,11 @@
 throw new Error('HUBOT_DOGECOIND_USER missing') unless process.env.HUBOT_DOGECOIND_USER?
 throw new Error('HUBOT_DOGECOIND_USER missing') unless process.env.HUBOT_DOGECOIND_PASS?
 
-dogecoin = require('node-dogecoin')({
+dogecoindConfig =
   user: process.env.HUBOT_DOGECOIND_USER
   pass: process.env.HUBOT_DOGECOIND_PASS
-})
+
+dogecoin = require('node-dogecoin')(dogecoindConfig)
 
 class Dogebot
 
