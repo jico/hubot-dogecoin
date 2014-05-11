@@ -2,7 +2,7 @@
 #   wow! tip with dogecoin
 #
 # Dependencies:
-#   node-dogecoin
+#   "node-dogecoin": "~0.3.5"
 #
 # Configuration:
 #   HUBOT_DOGECOIND_USER
@@ -16,6 +16,13 @@
 #   doge address  - get your dogecoin address
 #   doge balance  - get your dogecoin balance
 #   send <n|all> doge to <addr> - withdraw n or all doge to dogecoin address addr
+#
+# Notes:
+#   Must have a dogecoind instance running. Also uses Hubot brain. "doge"
+#   trigger keyword has the following aliases: such, much, so, very, dogecoin.
+#
+# Author:
+#   Jico Baligod <jico@baligod.com>
 #
 
 Dogebot  = require('./dogebot')
