@@ -1,3 +1,3 @@
-# Hubot Dogecoin
+# hubot-dogecoin [![Build Status](https://travis-ci.org/jico/hubot-dogecoin.svg?branch=travis)](https://travis-ci.org/jico/hubot-dogecoin)
 
-A Dogecoin tipping extension for Hubot.
+A hubot script for tipping with Dogecoin.
