@@ -15,21 +15,26 @@ class Dogebot
     @slug = @robot.name.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\W+/g, '-')
 
   getAddress: (user, cb) ->
-    dogecoind.exec 'getaccountaddress', @slugForUser(user), cb
+    dogecoind.exec 'getaccountaddress', @slugForUser(user), (err, result) =>
+      @robot.logger.error(err) if err?
+      cb(err, result)
 
   getBalance: (user, cb) ->
-    dogecoind.exec 'getbalance', @slugForUser(user), (err, result) ->
-      balance = parseInt(result) || 0
-      cb(err, balance)
+    dogecoind.exec 'getbalance', @slugForUser(user), (err, result) =>
+      @robot.logger.error(err) if err?
+      result = parseInt(result) || 0 if result?
+      cb(err, result)
 
   move: (sender, recipient, amount, cb) ->
     senderSlug    = @slugForUser(sender)
     recipientSlug = @slugForUser(recipient)
     amount        = parseInt(amount)
 
-    @getBalance sender, (err, balance) ->
+    @getBalance sender, (err, balance) =>
       if balance >= amount
-        dogecoind.exec 'move', senderSlug, recipientSlug, amount, cb
+        dogecoind.exec 'move', senderSlug, recipientSlug, amount, (err, result) =>
+          @robot.logger.error(err) if err?
+          cb(err, result)
       else
         error = "available balance is #{balance}"
         cb(error, false)
@@ -44,7 +49,9 @@ class Dogebot
       amount = parseInt(amount)
       if balance >= amount
         userSlug = @slugForUser(user)
-        dogecoind.exec 'sendFrom', userSlug, address, amount, cb
+        dogecoind.exec 'sendFrom', userSlug, address, amount, (err, result) =>
+          @robot.logger.error(err) if err?
+          cb(err, result)
       else
         error = "available balance is #{balance}"
         cb(error, false)

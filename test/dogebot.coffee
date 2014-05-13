@@ -12,6 +12,8 @@ describe 'Dogebot', ->
       name: 'robot'
       brain:
         users: -> {}
+      logger:
+        error: sinon.stub()
     done()
 
   describe 'instance variables', ->
@@ -21,7 +23,7 @@ describe 'Dogebot', ->
       expect(dogebot.slug).to.be('Doge-bot')
       done()
 
-  describe 'findUserByMention', ->
+  describe '#findUserByMention', ->
     beforeEach (done) ->
       @robot.brain.users = ->
         return users =
@@ -42,7 +44,7 @@ describe 'Dogebot', ->
       expect(user).to.eql(@robot.brain.users()['123'])
       done()
 
-  describe 'slugForUser', ->
+  describe '#slugForUser', ->
     it 'returns a user slug', (done) ->
       dogebot = new Dogebot(@robot)
       user = { id: 123 }
@@ -50,7 +52,7 @@ describe 'Dogebot', ->
       expect(slug).to.be("#{dogebot.slug}-#{user.id}")
       done()
 
-  describe 'userFromMsg', ->
+  describe '#userFromMsg', ->
     it 'returns a user object from a message', (done) ->
       user = { id: 123 }
       msg =
@@ -61,27 +63,41 @@ describe 'Dogebot', ->
       expect(dogebot.userFromMsg(msg)).to.eql(user)
       done()
 
-  describe 'getAddress', ->
+  describe '#getAddress', ->
     it 'retrieves the Dogecoin address for a user', (done) ->
       fakeDogecoinAddress = 'Dabcdefghijklmnopqrstuvwxyz1234567'
       execStub            = sinon.stub().yields(null, fakeDogecoinAddress)
-      dogecoindStub       = { exec: execStub }
       user                = { id: 123 }
-      Dogebot.__set__('dogecoind', dogecoindStub)
 
+      Dogebot.__set__('dogecoind', { exec: execStub })
       dogebot = new Dogebot(@robot)
+
       dogebot.getAddress user, (err, result) ->
         expect(execStub.withArgs('getaccountaddress', dogebot.slugForUser(user)).calledOnce).to.be(true)
         expect(err).to.be(null)
         expect(result).to.be(fakeDogecoinAddress)
         done()
 
-  describe 'getBalance', ->
+    it 'logs any errors', (done) ->
+      errorStub           = new Error('some error')
+      fakeDogecoinAddress = 'Dabcdefghijklmnopqrstuvwxyz1234567'
+      execStub            = sinon.stub().yields(errorStub, null)
+      user                = { id: 123 }
+
+      Dogebot.__set__('dogecoind', { exec: execStub })
+      dogebot = new Dogebot(@robot)
+
+      dogebot.getAddress user, (err, result) =>
+        expect(err).to.be(errorStub)
+        expect(result).to.be(null)
+        expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
+        done()
+
+  describe '#getBalance', ->
     beforeEach (done) ->
       @execStub     = sinon.stub()
       @user         = { id: 123 }
-      dogecoindStub = { exec: @execStub }
-      Dogebot.__set__('dogecoind', dogecoindStub)
+      Dogebot.__set__('dogecoind', { exec: @execStub })
       @dogebot = new Dogebot(@robot)
       done()
 
@@ -103,7 +119,16 @@ describe 'Dogebot', ->
         expect(result).to.be(0)
         done()
 
-  describe 'move', ->
+    it 'logs any errors', (done) ->
+      errorStub = new Error('some error')
+      @execStub.yields(errorStub, null)
+      @dogebot.getBalance @user, (err, result) =>
+        expect(err).to.be(errorStub)
+        expect(result).to.be(null)
+        expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
+        done()
+
+  describe '#move', ->
     beforeEach (done) ->
       @execStub = sinon.stub()
       d = new Dogebot(@robot)
@@ -115,14 +140,12 @@ describe 'Dogebot', ->
 
     it 'moves an amount of dogecoin between two accounts', (done) ->
       amount = '100'
+      @execStub.withArgs('getbalance').yields(null, parseInt(amount) + 100)
+      @execStub.withArgs('move').yields(null, true)
 
-      @execStub.withArgs('getbalance', @senderSlug).yields(null, 200)
-      @execStub.withArgs('move', @senderSlug, @recipientSlug, parseInt(amount)).yields(null, true)
-
-      dogecoindStub = { exec: @execStub }
-      Dogebot.__set__('dogecoind', dogecoindStub)
-
+      Dogebot.__set__('dogecoind', { exec: @execStub })
       dogebot = new Dogebot(@robot)
+
       dogebot.move @sender, @recipient, amount, (err, result) =>
         expect(@execStub.withArgs('move', @senderSlug, @recipientSlug, parseInt(amount)).calledOnce).to.be(true)
         expect(err).to.be(null)
@@ -135,16 +158,29 @@ describe 'Dogebot', ->
 
       @execStub.withArgs('getbalance', @senderSlug).yields(null, balance)
 
-      dogecoindStub = { exec: @execStub }
-      Dogebot.__set__('dogecoind', dogecoindStub)
-
+      Dogebot.__set__('dogecoind', { exec: @execStub })
       dogebot = new Dogebot(@robot)
+
       dogebot.move @sender, @recipient, amount, (err, result) ->
         expect(err).to.eql("available balance is #{balance}")
         expect(result).to.be(false)
         done()
 
-  describe 'sendFrom', ->
+    it 'logs any errors', (done) ->
+      errorStub = new Error('some error')
+      @execStub.withArgs('getbalance').yields(null, 200)
+      @execStub.withArgs('move').yields(errorStub, null)
+
+      Dogebot.__set__('dogecoind', { exec: @execStub })
+      dogebot = new Dogebot(@robot)
+
+      dogebot.move @sender, @recipient, 100, (err, result) =>
+        expect(err).to.be(errorStub)
+        expect(result).to.be(null)
+        expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
+        done()
+
+  describe '#sendFrom', ->
     beforeEach (done) ->
       d = new Dogebot(@robot)
       @execStub    = sinon.stub()
@@ -155,21 +191,19 @@ describe 'Dogebot', ->
 
     it 'validates the receiving address', (done) ->
       invalidAddress = 'NotADogecoinAddress'
-      amount         = 100
       dogebot        = new Dogebot(@robot)
-      dogebot.sendFrom @user, invalidAddress, amount, (err, result) ->
+      dogebot.sendFrom @user, invalidAddress, 100, (err, result) ->
         expect(err).to.eql("'#{invalidAddress}' does not appear to be a valid Dogecoin address")
         done()
 
     it 'validates the sender balance', (done) ->
-      balance     = 100
-      amount      = 200
-      @execStub.withArgs('getbalance', @userSlug).yields(null, balance)
+      balance = 100
+      amount  = 200
+      @execStub.withArgs('getbalance').yields(null, balance)
 
-      dogecoindStub = { exec: @execStub }
-      Dogebot.__set__('dogecoind', dogecoindStub)
-
+      Dogebot.__set__('dogecoind', { exec: @execStub })
       dogebot = new Dogebot(@robot)
+
       dogebot.sendFrom @user, @fakeAddress, amount, (err, result) ->
         expect(err).to.eql("available balance is #{balance}")
         expect(result).to.be(false)
@@ -180,12 +214,11 @@ describe 'Dogebot', ->
       amount  = '200'
       txid    = 'abc123'
       @execStub.withArgs('getbalance', @userSlug).yields(null, balance)
-      @execStub.withArgs('sendFrom', @userSlug, @fakeAddress, parseInt(amount)).yields(null, txid)
+      @execStub.withArgs('sendFrom').yields(null, txid)
 
-      dogecoindStub = { exec: @execStub }
-      Dogebot.__set__('dogecoind', dogecoindStub)
-
+      Dogebot.__set__('dogecoind', { exec: @execStub })
       dogebot = new Dogebot(@robot)
+
       dogebot.sendFrom @user, @fakeAddress, amount, (err, result) =>
         expect(@execStub.withArgs('sendFrom', @userSlug, @fakeAddress, parseInt(amount)).calledOnce).to.be(true)
         expect(err).to.be(null)
@@ -196,16 +229,29 @@ describe 'Dogebot', ->
       balance = 500
       amount  = 'all'
       txid    = 'abc123'
-      @execStub.withArgs('getbalance', @userSlug).yields(null, balance)
-      @execStub.withArgs('sendFrom', @userSlug, @fakeAddress, balance).yields(null, txid)
+      @execStub.withArgs('getbalance').yields(null, balance)
+      @execStub.withArgs('sendFrom').yields(null, txid)
 
-      dogecoindStub = { exec: @execStub }
-      Dogebot.__set__('dogecoind', dogecoindStub)
-
+      Dogebot.__set__('dogecoind', { exec: @execStub })
       dogebot = new Dogebot(@robot)
+
       dogebot.sendFrom @user, @fakeAddress, amount, (err, result) =>
         expect(@execStub.withArgs('sendFrom', @userSlug, @fakeAddress, balance).calledOnce).to.be(true)
         expect(err).to.be(null)
         expect(result).to.be(txid)
+        done()
+
+    it 'logs any errors', (done) ->
+      errorStub = new Error('some error')
+      @execStub.withArgs('getbalance').yields(null, 200)
+      @execStub.withArgs('sendFrom').yields(errorStub, null)
+
+      Dogebot.__set__('dogecoind', { exec: @execStub })
+      dogebot = new Dogebot(@robot)
+
+      dogebot.sendFrom @user, @fakeAddress, 100, (err, result) =>
+        expect(err).to.be(errorStub)
+        expect(result).to.be(null)
+        expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
         done()
 

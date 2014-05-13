@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.4 - 2014-05-12
+
+* Log dogecoind exec errors to robot.logger
+
 ## v0.0.3 - 2014-05-10
 
 * Moves major logic into Dogebot class

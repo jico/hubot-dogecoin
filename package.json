@@ -1,6 +1,6 @@
 {
   "name":         "hubot-dogecoin",
-  "version":      "0.0.3",
+  "version":      "0.0.4",
   "description":  "Hubot script for tipping with Dogecoin.",
   "author":       "Jico Baligod <jico@baligod.com>",
   "licenses": [
@@ -33,6 +33,6 @@
   },
   "main": "index.coffee",
   "scripts": {
-    "test": "./node_modules/.bin/mocha --compilers coffee:coffee-script/register"
+    "test": "./node_modules/.bin/mocha --compilers coffee:coffee-script/register --reporter spec"
   }
 }
