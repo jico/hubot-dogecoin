@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.5 - 2014-05-17
+
+* Emit events on successful dogecoind commands
+
 ## v0.0.4 - 2014-05-12
 
 * Log dogecoind exec errors to robot.logger

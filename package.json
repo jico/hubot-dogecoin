@@ -1,6 +1,6 @@
 {
   "name":         "hubot-dogecoin",
-  "version":      "0.0.4",
+  "version":      "0.0.5",
   "description":  "Hubot script for tipping with Dogecoin.",
   "author":       "Jico Baligod <jico@baligod.com>",
   "licenses": [

@@ -1,19 +1,20 @@
 process.env.HUBOT_DOGECOIND_USER = 'user'
 process.env.HUBOT_DOGECOIND_PASS = 'pass'
 
-rewire  = require('rewire')
-expect  = require('expect.js')
-sinon   = require('sinon')
-Dogebot = rewire('../scripts/dogebot')
+rewire       = require('rewire')
+expect       = require('expect.js')
+sinon        = require('sinon')
+EventEmitter = require('events').EventEmitter
+Dogebot      = rewire('../scripts/dogebot')
 
 describe 'Dogebot', ->
   beforeEach (done) ->
-    @robot =
-      name: 'robot'
-      brain:
-        users: -> {}
-      logger:
-        error: sinon.stub()
+    @robot = new EventEmitter
+    @robot.name = 'robot'
+    @robot.brain =
+      users: -> {}
+    @robot.logger =
+      error: sinon.stub()
     done()
 
   describe 'instance variables', ->
@@ -64,34 +65,49 @@ describe 'Dogebot', ->
       done()
 
   describe '#getAddress', ->
+    beforeEach (done) ->
+      @user = { id: 123 }
+      @fakeDogecoinAddress = 'Dabcdefghijklmnopqrstuvwxyz1234567'
+      done()
+
     it 'retrieves the Dogecoin address for a user', (done) ->
-      fakeDogecoinAddress = 'Dabcdefghijklmnopqrstuvwxyz1234567'
-      execStub            = sinon.stub().yields(null, fakeDogecoinAddress)
-      user                = { id: 123 }
+      execStub = sinon.stub().yields(null, @fakeDogecoinAddress)
 
       Dogebot.__set__('dogecoind', { exec: execStub })
       dogebot = new Dogebot(@robot)
 
-      dogebot.getAddress user, (err, result) ->
-        expect(execStub.withArgs('getaccountaddress', dogebot.slugForUser(user)).calledOnce).to.be(true)
+      dogebot.getAddress @user, (err, result) =>
+        expect(execStub.withArgs('getaccountaddress', dogebot.slugForUser(@user)).calledOnce).to.be(true)
         expect(err).to.be(null)
-        expect(result).to.be(fakeDogecoinAddress)
+        expect(result).to.be(@fakeDogecoinAddress)
         done()
 
     it 'logs any errors', (done) ->
-      errorStub           = new Error('some error')
-      fakeDogecoinAddress = 'Dabcdefghijklmnopqrstuvwxyz1234567'
-      execStub            = sinon.stub().yields(errorStub, null)
-      user                = { id: 123 }
+      errorStub = new Error('some error')
+      execStub  = sinon.stub().yields(errorStub, null)
 
       Dogebot.__set__('dogecoind', { exec: execStub })
       dogebot = new Dogebot(@robot)
 
-      dogebot.getAddress user, (err, result) =>
+      dogebot.getAddress @user, (err, result) =>
         expect(err).to.be(errorStub)
         expect(result).to.be(null)
         expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
         done()
+
+    it 'emits an event', (done) ->
+      execStub = sinon.stub().yields(null, @fakeDogecoinAddress)
+
+      Dogebot.__set__('dogecoind', { exec: execStub })
+      dogebot = new Dogebot(@robot)
+
+      @robot.on 'dogecoin.getAddress', (data) =>
+        expectedData =
+          user:    @user
+          address: @fakeDogecoinAddress
+        expect(data).to.eql(expectedData)
+        done()
+      dogebot.getAddress(@user)
 
   describe '#getBalance', ->
     beforeEach (done) ->
@@ -127,6 +143,17 @@ describe 'Dogebot', ->
         expect(result).to.be(null)
         expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
         done()
+
+    it 'emits an event', (done) ->
+      balance = 100
+      @execStub.yields(null, balance)
+      @robot.on 'dogecoin.getBalance', (data) =>
+        expectedData =
+          user:    @user
+          balance: balance
+        expect(data).to.eql(expectedData)
+        done()
+      @dogebot.getBalance(@user)
 
   describe '#move', ->
     beforeEach (done) ->
@@ -179,6 +206,22 @@ describe 'Dogebot', ->
         expect(result).to.be(null)
         expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
         done()
+
+    it 'emits an event', (done) ->
+      amount = 100
+      @execStub.withArgs('getbalance').yields(null, parseInt(amount) + 100)
+      @execStub.withArgs('move').yields(null, true)
+
+      Dogebot.__set__('dogecoind', { exec: @execStub })
+      dogebot = new Dogebot(@robot)
+
+      @robot.on 'dogecoin.move', (data) =>
+        expectedData =
+          sender:    @sender
+          recipient: @recipient
+          amount:    amount
+        done()
+      dogebot.move(@sender, @recipient, 100)
 
   describe '#sendFrom', ->
     beforeEach (done) ->
@@ -255,3 +298,21 @@ describe 'Dogebot', ->
         expect(@robot.logger.error.withArgs(errorStub).calledOnce).to.be(true)
         done()
 
+    it 'emits an event', (done) ->
+      balance = 500
+      amount  = '200'
+      txid    = 'abc123'
+      @execStub.withArgs('getbalance').yields(null, balance)
+      @execStub.withArgs('sendFrom').yields(null, txid)
+
+      Dogebot.__set__('dogecoind', { exec: @execStub })
+      dogebot = new Dogebot(@robot)
+
+      @robot.on 'dogecoin.sendFrom', (data) =>
+        expectedData =
+          user:    @user
+          address: @fakeAddress
+          amount:  amount
+          txid:    txid
+        done()
+      dogebot.sendFrom(@user, @fakeAddress, amount)

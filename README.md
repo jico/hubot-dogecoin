@@ -48,3 +48,36 @@ export HUBOT_DOGECOIND_PASS="dogecoindrpcpass"
 export HUBOT_DOGECOIND_HOST="localhost" # optional, default: localhost
 export HUBOT_DOGECOIND_PORT=22555       # Optional, default: 22555
 ```
+
+## Events
+
+The following event hooks are emitted on successful dogecoind command
+executions.
+
+```coffee
+@robot.emit 'dogecoin.getAddress', { user: user, address: result }
+```
+
+```coffee
+@robot.emit 'dogecoin.getBalance', { user: user, balance: result }
+```
+
+```coffee
+@robot.emit 'dogecoin.move', {
+  sender:    sender
+  recipient: recipient
+  amount:    amount
+}
+```
+
+```coffee
+@robot.emit 'dogecoin.sendFrom', {
+  user:    user
+  address: address
+  amount:  amount
+  txid:    result
+}
+```
+
+__Note:__ `user` is the entire user object from `@robot.brain` and `result` is
+the result of the corresponding dogecoind command.

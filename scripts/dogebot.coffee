@@ -17,13 +17,15 @@ class Dogebot
   getAddress: (user, cb) ->
     dogecoind.exec 'getaccountaddress', @slugForUser(user), (err, result) =>
       @robot.logger.error(err) if err?
-      cb(err, result)
+      @robot.emit 'dogecoin.getAddress', { user: user, address: result }
+      cb?(err, result)
 
   getBalance: (user, cb) ->
     dogecoind.exec 'getbalance', @slugForUser(user), (err, result) =>
       @robot.logger.error(err) if err?
       result = parseInt(result) || 0 if result?
-      cb(err, result)
+      @robot.emit 'dogecoin.getBalance', { user: user, balance: result }
+      cb?(err, result)
 
   move: (sender, recipient, amount, cb) ->
     senderSlug    = @slugForUser(sender)
@@ -34,10 +36,15 @@ class Dogebot
       if balance >= amount
         dogecoind.exec 'move', senderSlug, recipientSlug, amount, (err, result) =>
           @robot.logger.error(err) if err?
-          cb(err, result)
+          @robot.emit 'dogecoin.move', {
+            sender:    sender
+            recipient: recipient
+            amount:    amount
+          }
+          cb?(err, result)
       else
         error = "available balance is #{balance}"
-        cb(error, false)
+        cb?(error, false)
 
   sendFrom: (user, address, amount, cb) ->
     if address[0] != 'D' || address.length != 34
@@ -51,10 +58,16 @@ class Dogebot
         userSlug = @slugForUser(user)
         dogecoind.exec 'sendFrom', userSlug, address, amount, (err, result) =>
           @robot.logger.error(err) if err?
-          cb(err, result)
+          @robot.emit 'dogecoin.sendFrom', {
+            user:    user
+            address: address
+            amount:  amount
+            txid:    result
+          }
+          cb?(err, result)
       else
         error = "available balance is #{balance}"
-        cb(error, false)
+        cb?(error, false)
 
   # Helpers
 
