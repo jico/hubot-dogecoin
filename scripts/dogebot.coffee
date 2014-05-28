@@ -14,6 +14,40 @@ class Dogebot
   constructor: (@robot) ->
     @slug = @robot.name.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\W+/g, '-')
 
+    _dogeBtcApiUrl = "https://data.bter.com/api/1/ticker/doge_btc"
+    _btcUsdAPIUrl  = "https://www.bitstamp.net/api/ticker/"
+    @doge_btc = 0
+    @btc_usd  = 0
+
+    do pollExchanges = =>
+      # Poll for doge to btc rate
+      @robot.http(_dogeBtcApiUrl)
+        .header('Accept', 'application/json')
+        .get() (err, resp, body) =>
+          data = null
+          try
+            data = JSON.parse(body)
+          catch error
+            # TODO: Handle parse error here
+           return
+
+          @doge_btc = parseFloat(data.last)
+
+      # Poll for btc to usd
+      @robot.http(_btcUsdAPIUrl)
+        .header('Accept', 'application/json')
+        .get() (err, resp, body) =>
+          data = null
+          try
+            data = JSON.parse(body)
+          catch error
+            # TODO: Handle parse error here
+           return
+
+          @btc_usd = parseFloat(data.last)
+
+    setTimeout pollExchanges, 1000 * 60 * 5
+
   getAddress: (user, cb) ->
     dogecoind.exec 'getaccountaddress', @slugForUser(user), (err, result) =>
       @robot.logger.error(err) if err?
@@ -75,6 +109,10 @@ class Dogebot
     for id, userData of @robot.brain.users()
       return userData if userData.mention_name == mentionName
     return null
+
+  dogeToUsd: (amountDoge) ->
+    usd = parseFloat(amountDoge) * @doge_btc * @btc_usd
+    return usd.toFixed(2)
 
   slugForUser: (user) ->
     return "#{@slug}-#{user.id}"

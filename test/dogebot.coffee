@@ -15,6 +15,12 @@ describe 'Dogebot', ->
       users: -> {}
     @robot.logger =
       error: sinon.stub()
+
+    fakeHttp = ->
+      header: -> @
+      get: -> ->
+    @robot.http = fakeHttp
+
     done()
 
   describe 'instance variables', ->

@@ -25,7 +25,7 @@
 #   Jico Baligod <jico@baligod.com>
 #
 
-Dogebot  = require('./dogebot')
+Dogebot = require('./dogebot')
 
 module.exports = (robot) ->
   dogebot = new Dogebot(robot)
@@ -45,7 +45,8 @@ module.exports = (robot) ->
       if err?
         msg.reply unknownErrMsg
       else
-        msg.reply "your Dogecoin balance is #{balance}"
+        usdBalance = dogebot.dogeToUsd(balance)
+        msg.reply "your Dogecoin balance is #{balance} ($#{usdBalance})"
 
   robot.hear /@(\S+).*(?:tip |\+)(\d+).*doge/, (msg) ->
     recipientNick = msg.match[1]
