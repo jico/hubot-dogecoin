@@ -46,7 +46,7 @@ class Dogebot
 
           @btc_usd = parseFloat(data.last)
 
-    setTimeout pollExchanges, 1000 * 60 * 5
+    setInterval pollExchanges, 1000 * 60 * 5
 
   getAddress: (user, cb) ->
     dogecoind.exec 'getaccountaddress', @slugForUser(user), (err, result) =>

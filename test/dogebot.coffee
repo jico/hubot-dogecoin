@@ -8,7 +8,7 @@ EventEmitter = require('events').EventEmitter
 Dogebot      = rewire('../scripts/dogebot')
 
 describe 'Dogebot', ->
-  beforeEach (done) ->
+  beforeEach ->
     @robot = new EventEmitter
     @robot.name = 'robot'
     @robot.brain =
@@ -21,46 +21,93 @@ describe 'Dogebot', ->
       get: -> ->
     @robot.http = fakeHttp
 
-    done()
-
   describe 'instance variables', ->
-    it 'sets a slug for itself', (done) ->
+    it 'sets a slug for itself', ->
       @robot.name = 'Doge bot!'
       dogebot = new Dogebot(@robot)
       expect(dogebot.slug).to.be('Doge-bot')
-      done()
+
+    it 'polls exchanges for doge/btc/usd exchange rates', ->
+      dogeBtcUrl = "https://data.bter.com/api/1/ticker/doge_btc"
+      btcUsdUrl  = "https://www.bitstamp.net/api/ticker/"
+
+      dogeBtcResp =
+        statusCode: 200
+        body:
+          result: "true"
+          last:   "0.00000069"
+          high:   "0.00000073"
+          low:    "0.00000065"
+          avg:    "0.00000070"
+
+      btcUsdResp =
+        statusCode: 200
+        body:
+          high: "582.26"
+          last: "577.95"
+          bid:  "576.63"
+          low:  "563.45"
+
+      httpStub = sinon.stub()
+      httpStub.withArgs(dogeBtcUrl).returns
+        header: -> @
+        get: ->
+          return (cb) ->
+            err = null
+            cb(err, dogeBtcResp, JSON.stringify(dogeBtcResp.body))
+      httpStub.withArgs(btcUsdUrl).returns
+        header: -> @
+        get: ->
+          return (cb) ->
+            err = null
+            cb(err, btcUsdResp, JSON.stringify(btcUsdResp.body))
+
+      @robot.http = httpStub
+
+      dogebot = new Dogebot(@robot)
+      expect(dogebot.doge_btc).to.eql(parseFloat(dogeBtcResp.body.last))
+      expect(dogebot.btc_usd).to.eql(parseFloat(btcUsdResp.body.last))
+
+    it.skip 'updates doge/btc/usd exchange rates at intervals'
 
   describe '#findUserByMention', ->
-    beforeEach (done) ->
+    beforeEach ->
       @robot.brain.users = ->
         return users =
           123:
             id: 123
             mention_name: 'shibe'
-      done()
 
-    it 'returns null if user is not found', (done) ->
+    it 'returns null if user is not found', ->
       dogebot = new Dogebot(@robot)
       user = dogebot.findUserByMention('notreal')
       expect(user).to.be(null)
-      done()
 
-    it 'returns the user object matching the mention name', (done) ->
+    it 'returns the user object matching the mention name', ->
       dogebot = new Dogebot(@robot)
       user = dogebot.findUserByMention('shibe')
       expect(user).to.eql(@robot.brain.users()['123'])
-      done()
+
+  describe '#dogeToUsd', ->
+    it 'converts a dogecoin amount to usd', ->
+      dogebot = new Dogebot(@robot)
+      dogebot.doge_btc = 0.00000185
+      dogebot.btc_usd  = 580.65
+
+      dogeAmount = 320
+      expectedAmount = dogeAmount * dogebot.doge_btc * dogebot.btc_usd
+      expectedAmount = expectedAmount.toFixed(2)
+      expect(dogebot.dogeToUsd(dogeAmount)).to.eql(expectedAmount)
 
   describe '#slugForUser', ->
-    it 'returns a user slug', (done) ->
+    it 'returns a user slug', ->
       dogebot = new Dogebot(@robot)
       user = { id: 123 }
       slug = dogebot.slugForUser(user)
       expect(slug).to.be("#{dogebot.slug}-#{user.id}")
-      done()
 
   describe '#userFromMsg', ->
-    it 'returns a user object from a message', (done) ->
+    it 'returns a user object from a message', ->
       user = { id: 123 }
       msg =
         envelope:
@@ -68,13 +115,11 @@ describe 'Dogebot', ->
       @robot.brain.users = -> { 123: user }
       dogebot = new Dogebot(@robot)
       expect(dogebot.userFromMsg(msg)).to.eql(user)
-      done()
 
   describe '#getAddress', ->
-    beforeEach (done) ->
+    beforeEach ->
       @user = { id: 123 }
       @fakeDogecoinAddress = 'Dabcdefghijklmnopqrstuvwxyz1234567'
-      done()
 
     it 'retrieves the Dogecoin address for a user', (done) ->
       execStub = sinon.stub().yields(null, @fakeDogecoinAddress)
@@ -116,12 +161,11 @@ describe 'Dogebot', ->
       dogebot.getAddress(@user)
 
   describe '#getBalance', ->
-    beforeEach (done) ->
+    beforeEach ->
       @execStub     = sinon.stub()
       @user         = { id: 123 }
       Dogebot.__set__('dogecoind', { exec: @execStub })
       @dogebot = new Dogebot(@robot)
-      done()
 
     it 'retrieves the Dogecoin balance for a user', (done) ->
       balance = 100
@@ -162,14 +206,13 @@ describe 'Dogebot', ->
       @dogebot.getBalance(@user)
 
   describe '#move', ->
-    beforeEach (done) ->
+    beforeEach ->
       @execStub = sinon.stub()
       d = new Dogebot(@robot)
       @sender        = { id: 123 }
       @recipient     = { id: 456 }
       @senderSlug    = d.slugForUser(@sender)
       @recipientSlug = d.slugForUser(@recipient)
-      done()
 
     it 'moves an amount of dogecoin between two accounts', (done) ->
       amount = '100'
@@ -230,13 +273,12 @@ describe 'Dogebot', ->
       dogebot.move(@sender, @recipient, 100)
 
   describe '#sendFrom', ->
-    beforeEach (done) ->
+    beforeEach ->
       d = new Dogebot(@robot)
       @execStub    = sinon.stub()
       @user        = { id: 123 }
       @userSlug    = d.slugForUser(@sender)
       @fakeAddress = 'Dabcdefghijklmnopqrstuvwxyz1234567'
-      done()
 
     it 'validates the receiving address', (done) ->
       invalidAddress = 'NotADogecoinAddress'

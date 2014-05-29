@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.0.6 - 2014-05-28
+
+* Add pollers for doge to btc and btc to usd rates
+* Display balance in doge and USD
+
 ## v0.0.5 - 2014-05-17
 
 * Emit events on successful dogecoind commands
